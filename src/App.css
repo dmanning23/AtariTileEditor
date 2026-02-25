@@ -1,0 +1,116 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 16px;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header h1 {
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  color: #ff6b35;
+}
+
+.tile-name {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #444;
+  color: #e0e0e0;
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 2px 4px;
+  width: 180px;
+  outline: none;
+}
+
+.tile-name:focus {
+  border-bottom-color: #ff6b35;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: #444;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cell-count {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.controls button {
+  background: #2d2d4e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.controls button:hover {
+  background: #3d3d6e;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.grid-wrapper {
+  user-select: none;
+  cursor: crosshair;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  border: 1px solid #444;
+  width: min(80vw, calc(80vh * 80 / 48));
+  aspect-ratio: 80 / 48;
+}
+
+.cell {
+  border-right: 1px solid #2a2a3e;
+  border-bottom: 1px solid #2a2a3e;
+  background: #111122;
+  transition: background 0.05s;
+}
+
+.cell:hover {
+  background: #2a2a4e;
+}
+
+.cell--on {
+  background: #f0e040;
+}
+
+.cell--on:hover {
+  background: #ffe860;
+}

@@ -24,6 +24,7 @@ function loadFromStorage() {
 export default function App() {
   const [name, setName] = useState(() => loadFromStorage()?.name ?? 'untitled')
   const [grid, setGrid] = useState(() => loadFromStorage()?.cells ?? createEmptyGrid())
+  const [cellColor, setCellColor] = useState('#f0e040')
   const fileInputRef = useRef(null)
 
   // Auto-save to localStorage on every change
@@ -90,7 +91,7 @@ export default function App() {
   const activeCells = grid.flat().filter(Boolean).length
 
   return (
-    <div className="app">
+    <div className="app" style={{ '--cell-on': cellColor }}>
       <header className="header">
         <div className="title-group">
           <h1>Atari Tile Editor</h1>
@@ -112,6 +113,16 @@ export default function App() {
           <button onClick={() => fileInputRef.current.click()}>Load</button>
           <div className="divider" />
           <button onClick={handleExportAsm}>Export ASM</button>
+          <div className="divider" />
+          <label className="color-label">
+            Color
+            <input
+              type="color"
+              value={cellColor}
+              onChange={e => setCellColor(e.target.value)}
+              className="color-picker"
+            />
+          </label>
           <input
             ref={fileInputRef}
             type="file"

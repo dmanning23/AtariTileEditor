@@ -10,6 +10,39 @@ The `Sample/` directory contains a working Atari 2600 project (`helloworld3.asm`
 
 ![Tile engine running on Atari](Sample/Screenshot.png)
 
+### Tile Collision Detection
+
+`Sample/tileCollision.asm` provides an `IsTileSet` subroutine for testing whether a given tile position is ON at runtime — useful for collision detection between sprites and the playfield.
+
+```asm
+    include "tileCollision.asm"
+
+    ; Check if the tile at column 10, row 5 is set
+    lda #10
+    sta TileCheckCol
+    lda #5
+    sta TileCheckRow
+    jsr IsTileSet
+    bcs tileIsOn        ; carry set = tile is ON
+```
+
+To convert from raw screen coordinates:
+```asm
+    ; screenPixelX -> TileCheckCol
+    lda screenPixelX
+    lsr
+    lsr
+    sta TileCheckCol
+
+    ; scanLine -> TileCheckRow
+    lda scanLine
+    lsr
+    lsr
+    sta TileCheckRow
+```
+
+The routine uses three 40-byte lookup tables (`ColBitmapLo`, `ColBitmapHi`, `ColBitMask`) to resolve the correct bitmap and bitmask for any of the 40 columns without branching. Update the bitmap label prefix in those tables to match your tile map name.
+
 ## Getting Started
 
 ```bash

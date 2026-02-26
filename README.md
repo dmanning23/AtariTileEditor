@@ -2,6 +2,14 @@
 
 A browser-based tile map editor for Atari 2600 games using a playfield-based tile engine.
 
+![Atari Tile Editor](Screenshot.png)
+
+## Sample Project
+
+The `Sample/` directory contains a working Atari 2600 project (`helloworld3.asm`) that demonstrates the tile engine this editor targets, along with an exported tile map (`wowMuchHelloData.asm`) and the required header files.
+
+![Tile engine running on Atari](Sample/Screenshot.png)
+
 ## Getting Started
 
 ```bash

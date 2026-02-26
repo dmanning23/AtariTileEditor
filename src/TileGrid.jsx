@@ -1,10 +1,7 @@
 import { useState, useCallback, useRef, memo } from 'react'
 
-function snapToTile(r, c, tileW, tileH) {
-  return {
-    r: Math.floor(r / tileH) * tileH,
-    c: Math.floor(c / tileW) * tileW,
-  }
+function snapToTile(r, c) {
+  return { r, c }
 }
 
 const Cell = memo(function Cell({ on, isPreview, onMouseDown, onMouseEnter }) {

@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import TileGrid from './TileGrid'
+import TileLibrary from './TileLibrary'
+import TileEditorPanel from './TileEditorPanel'
 import { exportAsm } from './exportAsm'
+import { createTile, resizeAllTiles, stampTileOntoGrid } from './tileUtils'
 import './App.css'
 
 const COLS = 40
@@ -22,17 +25,33 @@ function loadFromStorage() {
 }
 
 export default function App() {
-  const [name, setName] = useState(() => loadFromStorage()?.name ?? 'untitled')
-  const [grid, setGrid] = useState(() => loadFromStorage()?.cells ?? createEmptyGrid())
-  const [cellColor, setCellColor] = useState('#f0e040')
+  const stored = loadFromStorage()
+
+  const [name, setName]               = useState(() => stored?.name       ?? 'untitled')
+  const [grid, setGrid]               = useState(() => stored?.cells      ?? createEmptyGrid())
+  const [tiles, setTiles]             = useState(() => stored?.tiles      ?? [])
+  const [tileWidth, setTileWidth]     = useState(() => stored?.tileWidth  ?? 8)
+  const [tileHeight, setTileHeight]   = useState(() => stored?.tileHeight ?? 8)
+  const [selectedTileId, setSelectedTileId] = useState(null)
+  const [editingTileId, setEditingTileId]   = useState(null)
+  const [activeTool, setActiveTool]   = useState('pen')
+  const [cellColor, setCellColor]     = useState('#f0e040')
   const fileInputRef = useRef(null)
 
-  // Auto-save to localStorage on every change
+  // Auto-save
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, cols: COLS, rows: ROWS, cells: grid }))
-  }, [name, grid])
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      name, cols: COLS, rows: ROWS, cells: grid,
+      tiles, tileWidth, tileHeight,
+    }))
+  }, [name, grid, tiles, tileWidth, tileHeight])
 
-  const toggleCell = useCallback((row, col) => {
+  // Derived
+  const selectedTile = tiles.find(t => t.id === selectedTileId) ?? null
+  const editingTile  = tiles.find(t => t.id === editingTileId)  ?? null
+
+  // --- Main canvas ---
+  const toggleMainCell = useCallback((row, col) => {
     setGrid(prev => {
       const next = prev.map(r => r.slice())
       next[row][col] = !next[row][col]
@@ -40,30 +59,77 @@ export default function App() {
     })
   }, [])
 
-  const clearGrid = useCallback(() => {
-    setGrid(createEmptyGrid())
+  const stampOntoMain = useCallback((tileRow, tileCol) => {
+    if (!selectedTile) return
+    setGrid(prev => stampTileOntoGrid(prev, selectedTile.cells, tileRow, tileCol))
+  }, [selectedTile])
+
+  const clearGrid = useCallback(() => setGrid(createEmptyGrid()), [])
+  const fillGrid  = useCallback(() =>
+    setGrid(Array.from({ length: ROWS }, () => new Array(COLS).fill(true))), [])
+
+  // --- Tile library ---
+  const addTile = useCallback(() => {
+    const tile = createTile(tileWidth, tileHeight)
+    setTiles(prev => [...prev, tile])
+    setEditingTileId(tile.id)
+  }, [tileWidth, tileHeight])
+
+  const deleteTile = useCallback((id) => {
+    setTiles(prev => prev.filter(t => t.id !== id))
+    setEditingTileId(prev => prev === id ? null : prev)
+    setSelectedTileId(prev => prev === id ? null : prev)
   }, [])
 
-  const fillGrid = useCallback(() => {
-    setGrid(Array.from({ length: ROWS }, () => new Array(COLS).fill(true)))
-  }, [])
+  const selectTile = useCallback((id) => {
+    setEditingTileId(id)
+    if (activeTool === 'stamp') setSelectedTileId(id)
+  }, [activeTool])
 
+  const handleChangeTool = useCallback((tool) => {
+    setActiveTool(tool)
+    if (tool === 'stamp' && editingTileId) setSelectedTileId(editingTileId)
+  }, [editingTileId])
+
+  const toggleTileCell = useCallback((row, col) => {
+    if (!editingTileId) return
+    setTiles(prev => prev.map(t => {
+      if (t.id !== editingTileId) return t
+      const cells = t.cells.map(r => r.slice())
+      cells[row][col] = !cells[row][col]
+      return { ...t, cells }
+    }))
+  }, [editingTileId])
+
+  const handleTileWidthChange = useCallback((w) => {
+    const clamped = Math.max(1, Math.min(40, w))
+    setTileWidth(clamped)
+    setTiles(prev => resizeAllTiles(prev, clamped, tileHeight))
+  }, [tileHeight])
+
+  const handleTileHeightChange = useCallback((h) => {
+    const clamped = Math.max(1, Math.min(48, h))
+    setTileHeight(clamped)
+    setTiles(prev => resizeAllTiles(prev, tileWidth, clamped))
+  }, [tileWidth])
+
+  // --- Save / Load / Export ---
   const handleSave = useCallback(() => {
-    const data = { name, cols: COLS, rows: ROWS, cells: grid }
+    const data = { name, cols: COLS, rows: ROWS, cells: grid, tiles, tileWidth, tileHeight }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
     a.href = url
     a.download = `${name || 'untitled'}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [name, grid])
+  }, [name, grid, tiles, tileWidth, tileHeight])
 
   const handleExportAsm = useCallback(() => {
-    const asm = exportAsm(name, grid)
+    const asm  = exportAsm(name, grid)
     const blob = new Blob([asm], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
     a.href = url
     a.download = `${name || 'untitled'}Data.asm`
     a.click()
@@ -77,14 +143,18 @@ export default function App() {
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target.result)
-        if (data.cells) setGrid(data.cells)
-        if (data.name) setName(data.name)
+        if (data.cells)                setGrid(data.cells)
+        if (data.name)                 setName(data.name)
+        if (data.tileWidth)            setTileWidth(data.tileWidth)
+        if (data.tileHeight)           setTileHeight(data.tileHeight)
+        if (Array.isArray(data.tiles)) setTiles(data.tiles)
+        setSelectedTileId(null)
+        setEditingTileId(null)
       } catch {
         alert('Failed to load file — make sure it is a valid tile map JSON.')
       }
     }
     reader.readAsText(file)
-    // Reset so the same file can be re-loaded if needed
     e.target.value = ''
   }, [])
 
@@ -132,9 +202,46 @@ export default function App() {
           />
         </div>
       </header>
-      <main className="main">
-        <TileGrid grid={grid} onToggle={toggleCell} cols={COLS} rows={ROWS} />
-      </main>
+
+      <div className="workspace">
+        <aside className="sidebar">
+          <TileLibrary
+            tiles={tiles}
+            tileWidth={tileWidth}
+            tileHeight={tileHeight}
+            selectedTileId={selectedTileId}
+            editingTileId={editingTileId}
+            activeTool={activeTool}
+            cellColor={cellColor}
+            onSelectTile={selectTile}
+            onAddTile={addTile}
+            onDeleteTile={deleteTile}
+            onTileWidthChange={handleTileWidthChange}
+            onTileHeightChange={handleTileHeightChange}
+            onChangeTool={handleChangeTool}
+          />
+          {editingTile && (
+            <TileEditorPanel
+              tile={editingTile}
+              onToggleCell={toggleTileCell}
+            />
+          )}
+        </aside>
+
+        <main className="main">
+          <TileGrid
+            grid={grid}
+            onToggle={toggleMainCell}
+            onStamp={stampOntoMain}
+            cols={COLS}
+            rows={ROWS}
+            tool={activeTool}
+            stampTile={selectedTile}
+            tileWidth={tileWidth}
+            tileHeight={tileHeight}
+          />
+        </main>
+      </div>
     </div>
   )
 }

@@ -1,11 +1,14 @@
+/* ── App shell ─────────────────────────────────────────── */
 .app {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 16px;
-  gap: 12px;
+  overflow: hidden;
+  padding: 12px;
+  gap: 10px;
 }
 
+/* ── Header ────────────────────────────────────────────── */
 .header {
   display: flex;
   align-items: center;
@@ -20,9 +23,10 @@
 }
 
 .header h1 {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   letter-spacing: 0.08em;
   color: #ff6b35;
+  white-space: nowrap;
 }
 
 .tile-name {
@@ -33,55 +37,83 @@
   font-family: inherit;
   font-size: 1rem;
   padding: 2px 4px;
-  width: 180px;
+  width: 160px;
   outline: none;
 }
-
-.tile-name:focus {
-  border-bottom-color: #ff6b35;
-}
-
-.divider {
-  width: 1px;
-  height: 20px;
-  background: #444;
-}
+.tile-name:focus { border-bottom-color: #ff6b35; }
 
 .controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-.cell-count {
-  font-size: 0.8rem;
-  color: #888;
-}
+.cell-count { font-size: 0.78rem; color: #666; }
 
 .controls button {
   background: #2d2d4e;
   color: #e0e0e0;
   border: 1px solid #444;
-  padding: 6px 14px;
+  padding: 5px 12px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   border-radius: 3px;
-  transition: background 0.15s;
+  transition: background 0.12s;
+}
+.controls button:hover { background: #3d3d6e; }
+
+.divider { width: 1px; height: 20px; background: #333; }
+
+.color-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #aaa;
+  cursor: pointer;
+}
+.color-picker {
+  width: 26px;
+  height: 26px;
+  padding: 2px;
+  border: 1px solid #444;
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
 }
 
-.controls button:hover {
-  background: #3d3d6e;
+/* ── Workspace ─────────────────────────────────────────── */
+.workspace {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  overflow: hidden;
+  min-height: 0;
 }
 
+/* ── Sidebar ───────────────────────────────────────────── */
+.sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+/* ── Main canvas area ──────────────────────────────────── */
 .main {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
 }
 
+/* ── Grid (main canvas — responsive) ──────────────────── */
 .grid-wrapper {
   user-select: none;
   cursor: crosshair;
@@ -92,44 +124,207 @@
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   border: 1px solid #444;
-  width: min(80vw, calc(80vh * 80 / 48));
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
   aspect-ratio: 80 / 48;
 }
 
+/* Grid — fixed cell size (tile editor) */
+.grid.grid--fixed {
+  grid-template-columns: repeat(var(--cols), var(--cell-size, 16px));
+  grid-template-rows: repeat(var(--rows), var(--cell-size, 16px));
+  max-width: unset;
+  max-height: unset;
+  aspect-ratio: unset;
+  width: fit-content;
+  height: fit-content;
+}
+
+/* ── Cells ─────────────────────────────────────────────── */
 .cell {
   border-right: 1px solid #2a2a3e;
   border-bottom: 1px solid #2a2a3e;
   background: #111122;
-  transition: background 0.05s;
+}
+.cell:hover { background: #1e1e38; }
+.cell--on { background: var(--cell-on, #f0e040); }
+.cell--on:hover { filter: brightness(1.2); }
+.cell--stamp-preview {
+  background: color-mix(in srgb, var(--cell-on, #f0e040) 45%, transparent) !important;
+  outline: 1px solid color-mix(in srgb, var(--cell-on, #f0e040) 70%, transparent);
+  outline-offset: -1px;
 }
 
-.cell:hover {
-  background: #2a2a4e;
+/* ── Tile Library ──────────────────────────────────────── */
+.tile-library {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #16162a;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 10px;
 }
 
-.cell--on {
-  background: var(--cell-on, #f0e040);
+.library-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.cell--on:hover {
-  filter: brightness(1.2);
+.library-section__label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #666;
 }
 
-.color-label {
+.library-section__header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: #aaa;
-  cursor: pointer;
+  justify-content: space-between;
 }
 
-.color-picker {
-  width: 28px;
-  height: 28px;
-  padding: 2px;
+/* Tool buttons */
+.tool-group { display: flex; gap: 6px; }
+.tool-btn {
+  flex: 1;
+  background: #2d2d4e;
+  color: #e0e0e0;
   border: 1px solid #444;
-  border-radius: 3px;
-  background: none;
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 0.82rem;
   cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.12s;
+}
+.tool-btn:hover:not(:disabled) { background: #3d3d6e; }
+.tool-btn--active {
+  background: #ff6b35;
+  border-color: #ff6b35;
+  color: #fff;
+}
+.tool-btn--active:hover { background: #ff8050; }
+.tool-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Tile size inputs */
+.tile-size-row { display: flex; gap: 10px; }
+.size-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+.size-input {
+  width: 46px;
+  background: #111122;
+  border: 1px solid #444;
+  color: #e0e0e0;
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 3px 5px;
+  border-radius: 3px;
+  outline: none;
+  text-align: center;
+}
+.size-input:focus { border-color: #ff6b35; }
+
+/* Add tile button */
+.add-tile-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #aaa;
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-tile-btn:hover { background: #2d2d4e; color: #e0e0e0; }
+
+/* Tile list */
+.tile-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tile-list__empty {
+  font-size: 0.75rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Tile thumbnail */
+.thumbnail {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 3px;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: border-color 0.1s;
+}
+.thumbnail:hover { border-color: #444; }
+.thumbnail__canvas {
+  display: block;
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+}
+.thumbnail__name {
+  font-size: 0.65rem;
+  color: #666;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.thumbnail__delete {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 0.75rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+.thumbnail__delete:hover { color: #ff4444; background: rgba(255,68,68,0.1); }
+
+/* ── Tile Editor Panel ─────────────────────────────────── */
+.tile-editor-panel {
+  background: #16162a;
+  border: 1px solid #2a2a40;
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tile-editor-panel__header {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #666;
+}
+.tile-editor-panel__name {
+  color: #aaa;
+  text-transform: none;
+  letter-spacing: 0;
 }

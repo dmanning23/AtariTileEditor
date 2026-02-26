@@ -54,31 +54,53 @@ Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## The Grid
 
-The editor shows a **40×48** grid matching the tile engine's playfield layout:
+The editor shows a **40×48** main canvas matching the tile engine's playfield layout:
 
 - **40 columns** — 20 pixels per half of the screen (left and right)
 - **48 rows** — each row corresponds to 4 scan lines (192 scan lines ÷ 4)
-- Tiles are **2:1 rectangular** (twice as wide as tall), matching the Atari's pixel aspect ratio
+- Cells are **2:1 rectangular** (twice as wide as tall), matching the Atari's pixel aspect ratio
 
-Click or click-drag to toggle cells on and off.
+## Tools
+
+The toolbar on the left sidebar lets you switch between two tools:
+
+| Tool | Behaviour |
+|------|-----------|
+| **Pen** | Click or click-drag to toggle individual cells on/off |
+| **Stamp** | Click or click-drag to place the selected tile onto the canvas. Snaps to tile-size boundaries. A semi-transparent preview follows the cursor. |
+
+## Tile Library
+
+The sidebar contains a tile library for building reusable patterns to stamp across the map.
+
+- **+** — Add a new blank tile
+- **Click a tile** — Opens it in the tile editor below the library
+- **× button** — Delete a tile
+- **Tile Size (W / H)** — Sets the dimensions (in grid cells) for new tiles. Changing the size resizes all existing tiles, padding with blank cells or truncating as needed.
+
+When the **Stamp** tool is active, clicking a tile also selects it as the active stamp. The selected tile is highlighted in orange; the tile currently open for editing is highlighted in blue.
+
+### Tile Editor
+
+Clicking a tile opens it in an inline editor directly below the library. Paint its cells with the pen tool — changes are reflected immediately in the thumbnail and stamp preview.
 
 ## Toolbar
 
-| Button | Action |
-|--------|--------|
-| **Clear** | Turn all cells off |
-| **Fill** | Turn all cells on |
-| **Save** | Download the tile map as a `.json` file |
+| Control | Action |
+|---------|--------|
+| Name field | Sets the name used for file downloads and ASM label prefixes |
+| **Clear** | Turn all canvas cells off |
+| **Fill** | Turn all canvas cells on |
+| **Save** | Download the project as a `.json` file |
 | **Load** | Load a previously saved `.json` file |
-| **Export ASM** | Export tile data as DASM-compatible assembly |
-
-The tile name field (next to the title) sets the name used for file downloads and ASM label prefixes.
+| **Export ASM** | Export the canvas as DASM-compatible assembly |
+| Color swatch | Change the display color of active cells (editor only, not exported) |
 
 Work is automatically saved to `localStorage`, so refreshing the page restores your last session.
 
 ## Exporting to Assembly
 
-**Export ASM** generates a `<name>Data.asm` file containing six bitmap tables compatible with the tile engine's rendering loop:
+**Export ASM** generates a `<name>Data.asm` file containing six bitmap tables compatible with the tile engine's rendering loop. Only the **main canvas** is exported — the tile library is not included.
 
 ```
 <name>Bitmap0  — left  PF0 (columns 0–3)
@@ -113,15 +135,24 @@ In your game's assembly, include the exported file and update the bitmap label r
 
 ## Save File Format
 
-The `.json` save format is straightforward and human-readable:
+The `.json` save format includes the canvas, tile library, and tile size settings:
 
 ```json
 {
-  "name": "my-tile",
+  "name": "my-level",
   "cols": 40,
   "rows": 48,
-  "cells": [[false, true, false, ...], ...]
+  "cells": [[false, true, false, ...], ...],
+  "tileWidth": 8,
+  "tileHeight": 8,
+  "tiles": [
+    {
+      "id": "abc123",
+      "name": "tile",
+      "cells": [[false, true, ...], ...]
+    }
+  ]
 }
 ```
 
-`cells` is a 48×40 array of booleans (rows × columns), where `true` = pixel on.
+`cells` (canvas) is a 48×40 array of booleans. Each tile's `cells` is a `tileHeight × tileWidth` array. Files saved without a `tiles` array (older format) load cleanly with an empty library.

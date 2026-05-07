@@ -40,8 +40,8 @@ export function stampTileOntoGrid(grid, tileCells, tileRow, tileCol) {
 }
 
 export function resampleGrid(grid, oldKernelLines, newKernelLines) {
-  const oldRows = grid.length
-  const newRows = grid.length * oldKernelLines / newKernelLines
+  const oldRows = 192 / oldKernelLines
+  const newRows = 192 / newKernelLines
   const cols = grid[0]?.length ?? 40
 
   if (newRows === oldRows) return grid.map(r => r.slice())

@@ -38,3 +38,37 @@ export function stampTileOntoGrid(grid, tileCells, tileRow, tileCol) {
   }
   return next
 }
+
+export function resampleGrid(grid, oldKernelLines, newKernelLines) {
+  const oldRows = grid.length
+  const newRows = grid.length * oldKernelLines / newKernelLines
+  const cols = grid[0]?.length ?? 40
+
+  if (newRows === oldRows) return grid.map(r => r.slice())
+
+  if (newRows > oldRows) {
+    const factor = newRows / oldRows
+    return Array.from({ length: newRows }, (_, d) => {
+      let sourceIndex
+      if (newKernelLines < 4) {
+        // For small newKernelLines, split into repeating blocks
+        const halfRows = newRows / 2
+        sourceIndex = Math.floor((d % halfRows) / (halfRows / oldRows))
+      } else {
+        sourceIndex = Math.floor(d / factor)
+      }
+      return grid[sourceIndex].slice()
+    })
+  }
+
+  // Downscale: OR-merge `factor` source rows into each dest row
+  const factor = oldRows / newRows
+  return Array.from({ length: newRows }, (_, d) =>
+    Array.from({ length: cols }, (_, c) => {
+      for (let f = 0; f < factor; f++) {
+        if (grid[d * factor + f][c]) return true
+      }
+      return false
+    })
+  )
+}

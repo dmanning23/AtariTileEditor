@@ -199,6 +199,16 @@ export default function App() {
           <button onClick={clearGrid}>Clear</button>
           <button onClick={fillGrid}>Fill</button>
           <div className="divider" />
+          <label className="kernel-label">
+            Kernel
+            <select value={kernelLines} onChange={e => handleKernelChange(e.target.value)}>
+              <option value={1}>1-line</option>
+              <option value={2}>2-line</option>
+              <option value={4}>4-line</option>
+              <option value={8}>8-line</option>
+            </select>
+          </label>
+          <div className="divider" />
           <button onClick={handleSave}>Save</button>
           <button onClick={() => fileInputRef.current.click()}>Load</button>
           <div className="divider" />

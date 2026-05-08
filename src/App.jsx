@@ -24,15 +24,14 @@ function loadFromStorage() {
 }
 
 export default function App() {
-  const stored = loadFromStorage()
-  const initialKernelLines = stored?.kernelLines ?? 4
+  const [stored] = useState(loadFromStorage)
 
   const [name, setName]               = useState(() => stored?.name       ?? 'untitled')
-  const [grid, setGrid]               = useState(() => stored?.cells      ?? createEmptyGrid(192 / initialKernelLines))
+  const [kernelLines, setKernelLines] = useState(() => stored?.kernelLines ?? 4)
+  const [grid, setGrid]               = useState(() => stored?.cells      ?? createEmptyGrid(192 / (stored?.kernelLines ?? 4)))
   const [tiles, setTiles]             = useState(() => stored?.tiles      ?? [])
   const [tileWidth, setTileWidth]     = useState(() => stored?.tileWidth  ?? 8)
   const [tileHeight, setTileHeight]   = useState(() => stored?.tileHeight ?? 8)
-  const [kernelLines, setKernelLines] = useState(initialKernelLines)
   const [selectedTileId, setSelectedTileId] = useState(null)
   const [editingTileId, setEditingTileId]   = useState(null)
   const [activeTool, setActiveTool]   = useState('pen')

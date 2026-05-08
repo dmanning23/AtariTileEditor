@@ -3,15 +3,14 @@ import TileGrid from './TileGrid'
 import TileLibrary from './TileLibrary'
 import TileEditorPanel from './TileEditorPanel'
 import { exportAsm } from './exportAsm'
-import { createTile, resizeAllTiles, stampTileOntoGrid } from './tileUtils'
+import { createTile, resizeAllTiles, stampTileOntoGrid, resampleGrid } from './tileUtils'
 import './App.css'
 
 const COLS = 40
-const ROWS = 48
 const STORAGE_KEY = 'atari-tile-editor'
 
-function createEmptyGrid() {
-  return Array.from({ length: ROWS }, () => new Array(COLS).fill(false))
+function createEmptyGrid(rows) {
+  return Array.from({ length: rows }, () => new Array(COLS).fill(false))
 }
 
 function loadFromStorage() {
@@ -26,25 +25,29 @@ function loadFromStorage() {
 
 export default function App() {
   const stored = loadFromStorage()
+  const initialKernelLines = stored?.kernelLines ?? 4
 
   const [name, setName]               = useState(() => stored?.name       ?? 'untitled')
-  const [grid, setGrid]               = useState(() => stored?.cells      ?? createEmptyGrid())
+  const [grid, setGrid]               = useState(() => stored?.cells      ?? createEmptyGrid(192 / initialKernelLines))
   const [tiles, setTiles]             = useState(() => stored?.tiles      ?? [])
   const [tileWidth, setTileWidth]     = useState(() => stored?.tileWidth  ?? 8)
   const [tileHeight, setTileHeight]   = useState(() => stored?.tileHeight ?? 8)
+  const [kernelLines, setKernelLines] = useState(initialKernelLines)
   const [selectedTileId, setSelectedTileId] = useState(null)
   const [editingTileId, setEditingTileId]   = useState(null)
   const [activeTool, setActiveTool]   = useState('pen')
   const [cellColor, setCellColor]     = useState('#f0e040')
   const fileInputRef = useRef(null)
 
+  const rows = 192 / kernelLines
+
   // Auto-save
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      name, cols: COLS, rows: ROWS, cells: grid,
+      name, cols: COLS, rows, kernelLines, cells: grid,
       tiles, tileWidth, tileHeight,
     }))
-  }, [name, grid, tiles, tileWidth, tileHeight])
+  }, [name, grid, tiles, tileWidth, tileHeight, kernelLines, rows])
 
   // Derived
   const selectedTile = tiles.find(t => t.id === selectedTileId) ?? null
@@ -64,9 +67,9 @@ export default function App() {
     setGrid(prev => stampTileOntoGrid(prev, selectedTile.cells, tileRow, tileCol))
   }, [selectedTile])
 
-  const clearGrid = useCallback(() => setGrid(createEmptyGrid()), [])
+  const clearGrid = useCallback(() => setGrid(createEmptyGrid(rows)), [rows])
   const fillGrid  = useCallback(() =>
-    setGrid(Array.from({ length: ROWS }, () => new Array(COLS).fill(true))), [])
+    setGrid(Array.from({ length: rows }, () => new Array(COLS).fill(true))), [rows])
 
   // --- Tile library ---
   const addTile = useCallback(() => {
@@ -108,14 +111,14 @@ export default function App() {
   }, [tileHeight])
 
   const handleTileHeightChange = useCallback((h) => {
-    const clamped = Math.max(1, Math.min(48, h))
+    const clamped = Math.max(1, Math.min(rows, h))
     setTileHeight(clamped)
     setTiles(prev => resizeAllTiles(prev, tileWidth, clamped))
-  }, [tileWidth])
+  }, [rows, tileWidth])
 
   // --- Save / Load / Export ---
   const handleSave = useCallback(() => {
-    const data = { name, cols: COLS, rows: ROWS, cells: grid, tiles, tileWidth, tileHeight }
+    const data = { name, cols: COLS, rows, kernelLines, cells: grid, tiles, tileWidth, tileHeight }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
@@ -123,10 +126,10 @@ export default function App() {
     a.download = `${name || 'untitled'}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [name, grid, tiles, tileWidth, tileHeight])
+  }, [name, grid, tiles, tileWidth, tileHeight, kernelLines, rows])
 
   const handleExportAsm = useCallback(() => {
-    const asm  = exportAsm(name, grid)
+    const asm  = exportAsm(name, grid, kernelLines)
     const blob = new Blob([asm], { type: 'text/plain' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
@@ -134,7 +137,7 @@ export default function App() {
     a.download = `${name || 'untitled'}Data.asm`
     a.click()
     URL.revokeObjectURL(url)
-  }, [name, grid])
+  }, [name, grid, kernelLines])
 
   const handleLoad = useCallback((e) => {
     const file = e.target.files[0]
@@ -148,6 +151,7 @@ export default function App() {
         if (data.tileWidth)            setTileWidth(data.tileWidth)
         if (data.tileHeight)           setTileHeight(data.tileHeight)
         if (Array.isArray(data.tiles)) setTiles(data.tiles)
+        setKernelLines(data.kernelLines ?? 4)
         setSelectedTileId(null)
         setEditingTileId(null)
       } catch {
@@ -157,6 +161,22 @@ export default function App() {
     reader.readAsText(file)
     e.target.value = ''
   }, [])
+
+  const handleKernelChange = useCallback((newKernelLines) => {
+    const next = Number(newKernelLines)
+    if (next === kernelLines) return
+    const oldRows = 192 / kernelLines
+    const newRows = 192 / next
+    const confirmed = window.confirm(
+      `Switch to ${next}-line kernel? The grid will be resampled from ${oldRows} to ${newRows} rows.`
+    )
+    if (!confirmed) return
+    const clampedTileHeight = Math.min(tileHeight, newRows)
+    setKernelLines(next)
+    setGrid(resampleGrid(grid, kernelLines, next))
+    setTileHeight(clampedTileHeight)
+    setTiles(resizeAllTiles(tiles, tileWidth, clampedTileHeight))
+  }, [kernelLines, grid, tileHeight, tiles, tileWidth])
 
   const activeCells = grid.flat().filter(Boolean).length
 
@@ -175,7 +195,7 @@ export default function App() {
           />
         </div>
         <div className="controls">
-          <span className="cell-count">{activeCells} / {COLS * ROWS} cells on</span>
+          <span className="cell-count">{activeCells} / {COLS * rows} cells on</span>
           <button onClick={clearGrid}>Clear</button>
           <button onClick={fillGrid}>Fill</button>
           <div className="divider" />
@@ -234,7 +254,7 @@ export default function App() {
             onToggle={toggleMainCell}
             onStamp={stampOntoMain}
             cols={COLS}
-            rows={ROWS}
+            rows={rows}
             tool={activeTool}
             stampTile={selectedTile}
             tileWidth={tileWidth}

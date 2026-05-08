@@ -48,17 +48,9 @@ export function resampleGrid(grid, oldKernelLines, newKernelLines) {
 
   if (newRows > oldRows) {
     const factor = newRows / oldRows
-    return Array.from({ length: newRows }, (_, d) => {
-      let sourceIndex
-      if (newKernelLines < 4) {
-        // For small newKernelLines, split into repeating blocks
-        const halfRows = newRows / 2
-        sourceIndex = Math.floor((d % halfRows) / (halfRows / oldRows))
-      } else {
-        sourceIndex = Math.floor(d / factor)
-      }
-      return grid[sourceIndex].slice()
-    })
+    return Array.from({ length: newRows }, (_, d) =>
+      grid[Math.floor(d / factor)].slice()
+    )
   }
 
   // Downscale: OR-merge `factor` source rows into each dest row

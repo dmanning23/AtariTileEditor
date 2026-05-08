@@ -17,15 +17,15 @@ describe('resampleGrid', () => {
     }
   })
 
-  it('upscales by factor 4 (8-line → 1-line: 24→192 rows)', () => {
+  it('upscales by factor 8 (8-line → 1-line: 24→192 rows)', () => {
     const grid = makeGrid(24)
     grid[3][7] = true
     const result = resampleGrid(grid, 8, 1)
     expect(result).toHaveLength(192)
-    // source row 3 maps to dest rows 12–15
-    for (let d = 12; d < 16; d++) expect(result[d][7]).toBe(true)
-    expect(result[11][7]).toBe(false)
-    expect(result[16][7]).toBe(false)
+    // source row 3 maps to dest rows 24–31 (factor = 192/24 = 8)
+    for (let d = 24; d < 32; d++) expect(result[d][7]).toBe(true)
+    expect(result[23][7]).toBe(false)
+    expect(result[32][7]).toBe(false)
   })
 
   it('downscales by OR-merging rows (4-line → 8-line: 48→24 rows)', () => {

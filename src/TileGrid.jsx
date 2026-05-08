@@ -100,7 +100,7 @@ export default function TileGrid({
   // Responsive mode (main canvas): aspect-ratio driven, fills container
   const gridStyle = cellSize != null
     ? { '--cols': cols, '--rows': rows, '--cell-size': `${cellSize}px` }
-    : { '--cols': cols, '--rows': rows, aspectRatio: `${cols * 2} / ${rows}` }
+    : { '--cols': cols, '--rows': rows }
 
   const gridClass = `grid${cellSize != null ? ' grid--fixed' : ''}${tool === 'stamp' ? ' grid--stamp' : ''}`
 
